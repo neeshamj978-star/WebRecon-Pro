@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#070b16">
+    <title>WebRecon Pro | Cyber Security Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .live-scan-card[hidden] { display: none; }
+        .live-error[hidden] { display: none; }
+        .score-circle { --score: {{ security_score.overall if security_score else 0 }}; }
+    </style>
+</head>
+
+<body>
+
+<nav class="navbar">
+    <a href="{{ url_for('home') }}" class="brand">
+        <div class="brand-icon">W</div>
+        <div>
+            <div class="brand-name">WebRecon <span>Pro</span></div>
+            <span class="brand-subtitle">CYBER SECURITY INTELLIGENCE</span>
+        </div>
+    </a>
+
+    <div class="nav-links">
+        <a href="{{ url_for('home') }}" class="active">Dashboard</a>
+        <a href="{{ url_for('history') }}">History</a>
+        <a href="{{ url_for('compare') }}">Compare</a>
+    </div>
+
+    <div class="nav-status">SYSTEM ONLINE</div>
+    <div class="nav-credit">Developed by Shawkat Ali</div>
+</nav>
+
+<main>
+
+    <section class="hero">
+        <div class="eyebrow">WEB SECURITY ANALYSIS PLATFORM</div>
+        <h1>See Your Website's <span>Security Clearly.</span></h1>
+        <p>
+            Analyze DNS records, IP addresses, WHOIS information, SSL certificates,
+            HTTP security headers and website configurations through one intelligence dashboard.
+        </p>
+    </section>
+
+    <section class="scanner-card">
+        <div class="scanner-label">Target website</div>
+
+        <form id="scanForm" method="POST" action="{{ url_for('home') }}">
+            <div class="input-wrapper">
+                <input
+                    type="text"
+                    name="target"
+                    value="{{ target or '' }}"
+                    placeholder="https://example.com"
+                    autocomplete="url"
+                    required
+                >
+                <button type="submit" id="scanButton">
+                    Start Scan <span>→</span>
+                </button>
+            </div>
+        </form>
+
+        <p class="permission-note">
+            ◈ Non-invasive analysis. Only scan websites you own or have permission to assess.
+        </p>
+
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+    </section>
+
+    <section class="live-scan-card"
+             id="liveScanCard"
+             data-scan-id="{{ scan_id or '' }}"
+             hidden>
+
+        <div class="live-scan-header">
+            <div>
+                <h3>Live Security Analysis</h3>
+                <div class="live-target" id="liveTarget">Preparing target...</div>
+            </div>
+            <div class="live-status" id="liveStatus">STARTING</div>
+        </div>
+
+        <div class="live-progress-track">
+            <div class="live-progress-fill" id="liveProgressFill"></div>
+        </div>
+
+        <div class="live-progress-info">
+            <span id="liveStage">Initializing scanner...</span>
+            <span id="liveProgressText">0% completed</span>
+        </div>
+
+        <div class="live-error" id="liveError" hidden></div>
+    </section>
+
+    {% if results %}
+
+    {% if security_score %}
+    <section class="score-section">
+        <div class="results-heading">
+            <div>
+                <div class="eyebrow">SECURITY OVERVIEW</div>
+                <h2>Security Intelligence Report</h2>
+                <p>Overall assessment based on the checks completed by WebRecon Pro.</p>
+            </div>
+            <span class="result-count">ANALYSIS COMPLETE</span>
+        </div>
+
+        <div class="score-layout">
+            <div class="score-main-card">
+                <h3>Overall Security Score</h3>
+
+                <div class="score-circle">
+                    <div>
+                        <div class="score-value">
+                            {{ security_score.overall }}<small>/100</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="score-grade">
+                    Grade {{ security_score.grade }}
+                </div>
+                <div class="score-label">
+                    {{ security_score.grade_label }}
+                </div>
+            </div>
+
+            <div class="score-details-card">
+                <h3>Security Category Performance</h3>
+
+                {% for category in display_categories %}
+                <div class="category-row">
+                    <div class="category-topline">
+                        <span>{{ category.name }}</span>
+                        <span>{{ category.score }}/{{ category.maximum }}</span>
+                    </div>
+
+                    <div class="progress-track">
+                        <div class="progress-fill"
+                             style="width: {{ category.percent }}%;">
+                        </div>
+                    </div>
+
+                    <div class="category-status">{{ category.status }}</div>
+                </div>
+                {% endfor %}
+
+                {% if security_score.recommendations %}
+                <div class="recommendations">
+                    <h3>Recommended Improvements</h3>
+                    <ul>
+                        {% for recommendation in security_score.recommendations %}
+                        <li>{{ recommendation }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="results-section">
+        <div class="results-heading">
+            <div>
+                <div class="eyebrow">TECHNICAL FINDINGS</div>
+                <h2>Security Analysis Results</h2>
+                <p>Detailed results from the website analysis.</p>
+            </div>
+            <span class="result-count">{{ results|length }} CHECKS</span>
+        </div>
+
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>SECURITY CHECK</th>
+                        <th>STATUS</th>
+                        <th>DETAILS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr>
+                        <td class="check-name">{{ result.name }}</td>
+                        <td>
+                            <span class="status {{ result.status|lower }}">
+                                {{ result.status }}
+                            </span>
+                        </td>
+                        <td class="details">{{ result.details }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if report_id %}
+        <div class="report-download">
+            <div>
+                <h3>Security report is ready</h3>
+                <p>
+                    Your PDF includes the security score, category results,
+                    recommendations and all scan findings.
+                </p>
+            </div>
+
+            <a class="download-button"
+               href="{{ url_for('download_report', report_id=report_id) }}">
+                Download PDF Report ↓
+            </a>
+        </div>
+        {% endif %}
+
+        <p class="disclaimer">
+            Missing security headers do not automatically confirm a vulnerability.
+            Findings should be reviewed in their technical context.
+        </p>
+    </section>
+
+    {% endif %}
+
+    <section class="features">
+        <div class="feature-card">
+            <span class="feature-icon">⌘</span>
+            <h3>DNS Intelligence</h3>
+            <p>Inspect DNS records, nameservers and resolved IP addresses.</p>
+        </div>
+
+        <div class="feature-card">
+            <span class="feature-icon">◎</span>
+            <h3>WHOIS Intelligence</h3>
+            <p>Review public domain registration information.</p>
+        </div>
+
+        <div class="feature-card">
+            <span class="feature-icon">◇</span>
+            <h3>SSL Analysis</h3>
+            <p>Check HTTPS certificate validity, issuer and expiry.</p>
+        </div>
+
+        <div class="feature-card">
+            <span class="feature-icon">⌁</span>
+            <h3>HTTP Security</h3>
+            <p>Inspect response headers and cookie configurations.</p>
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    <div class="footer-brand">WebRecon <span>Pro</span></div>
+    <p>Website Security &amp; Intelligence Scanner</p>
+    <p class="copyright">
+        © 2026 WebRecon Pro. Educational Cybersecurity Project.
+    </p>
+    <p class="credit">Developed by <strong>Shawkat Ali</strong></p>
+</footer>
+
+<script>
+(function () {
+    const form = document.getElementById("scanForm");
+    const button = document.getElementById("scanButton");
+    const card = document.getElementById("liveScanCard");
+
+    const stage = document.getElementById("liveStage");
+    const status = document.getElementById("liveStatus");
+    const fill = document.getElementById("liveProgressFill");
+    const percentText = document.getElementById("liveProgressText");
+    const targetText = document.getElementById("liveTarget");
+    const errorBox = document.getElementById("liveError");
+
+    let pollingTimer = null;
+    let active = false;
+
+    function showError(message) {
+        active = false;
+        status.textContent = "SCAN FAILED";
+        status.className = "live-status scan-error";
+        errorBox.hidden = false;
+        errorBox.textContent = message;
+        button.disabled = false;
+        button.innerHTML = 'Start Scan <span>→</span>';
+    }
+
+    async function pollProgress(scanId) {
+        if (!active) return;
+
+        try {
+            const response = await fetch(
+                "/progress/" + encodeURIComponent(scanId),
+                { cache: "no-store" }
+            );
+
+            if (!response.ok) {
+                throw new Error("Could not retrieve scan progress.");
+            }
+
+            const data = await response.json();
+
+            const progress = Math.max(
+                0,
+                Math.min(100, Number(data.progress) || 0)
+            );
+
+            stage.textContent = data.stage || "Processing...";
+            fill.style.width = progress + "%";
+            percentText.textContent = progress + "% completed";
+
+            if (data.status === "completed") {
+                active = false;
+                status.textContent = "SCAN COMPLETED";
+                status.className = "live-status scan-success";
+                stage.textContent = "Scan complete. Loading your report...";
+                fill.style.width = "100%";
+                percentText.textContent = "100% completed";
+
+                window.location.assign(
+                    "/scan-result/" + encodeURIComponent(scanId)
+                );
+                return;
+            }
+
+            if (data.status === "failed" || data.status === "not_found") {
+                showError(data.error || "The scan could not be completed.");
+                return;
+            }
+
+            status.innerHTML =
+                '<span class="live-spinner"></span> SCANNING';
+
+            pollingTimer = window.setTimeout(
+                () => pollProgress(scanId),
+                1000
+            );
+
+        } catch (error) {
+            showError(error.message);
+        }
+    }
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        if (active) return;
+
+        const input = form.querySelector('input[name="target"]');
+        const target = input.value.trim();
+
+        if (!target) {
+            input.focus();
+            return;
+        }
+
+        if (pollingTimer) {
+            window.clearTimeout(pollingTimer);
+        }
+
+        active = true;
+        button.disabled = true;
+        button.textContent = "Starting scan...";
+
+        card.hidden = false;
+        errorBox.hidden = true;
+        fill.style.width = "0%";
+        percentText.textContent = "0% completed";
+        stage.textContent = "Starting background scan...";
+        status.textContent = "STARTING";
+        status.className = "live-status";
+        targetText.textContent = "Target: " + target;
+
+        card.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+
+        try {
+            const response = await fetch(form.action, {
+                method: "POST",
+                body: new FormData(form),
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+
+            const html = await response.text();
+
+            if (!response.ok) {
+                throw new Error("The server could not start the scan.");
+            }
+
+            const parsed = new DOMParser().parseFromString(
+                html,
+                "text/html"
+            );
+
+            const returnedCard = parsed.getElementById("liveScanCard");
+
+            if (!returnedCard) {
+                const serverError = parsed.querySelector(".error-message");
+                throw new Error(
+                    serverError
+                        ? serverError.textContent.trim()
+                        : "The server did not return a scan session."
+                );
+            }
+
+            const scanId = returnedCard.dataset.scanId;
+
+            if (!scanId) {
+                throw new Error("The scan ID was not returned by the server.");
+            }
+
+            button.textContent = "Scan Running...";
+            pollProgress(scanId);
+
+        } catch (error) {
+            showError(error.message);
+        }
+    });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.py[cod]
+reports/
+*.db
+*.sqlite
+*.sqlite3
+*.pdf
+.env
+*_backup*
+*_before_*
+.DS_Store

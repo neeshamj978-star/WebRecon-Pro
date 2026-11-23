@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compare Reports | WebRecon Pro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="brand">WebRecon <span>Pro</span></div>
+    <div class="nav-links">
+        <a href="{{ url_for('home') }}" class="nav-link">Dashboard</a>
+        <a href="{{ url_for('history') }}" class="nav-link">History</a>
+        <a href="{{ url_for('compare') }}" class="nav-link active">Compare</a>
+    </div>
+</nav>
+
+<main class="page-container">
+    <section class="page-heading">
+        <h1>Compare Scan Reports</h1>
+        <p>Compare two scans of the same website and review changes in security scores.</p>
+    </section>
+
+    {% if error %}
+        <div class="error-message">{{ error }}</div>
+    {% endif %}
+
+    <section class="history-card">
+        <h2>Select Reports</h2>
+        {% if scans|length >= 2 %}
+        <form method="POST" action="{{ url_for('compare') }}" class="compare-form">
+            <label for="scan_one">First scan (older report)</label>
+            <select name="scan_one" id="scan_one" required>
+                {% for scan in scans %}
+                <option value="{{ scan.id }}">
+                    {{ scan.target }} — {{ scan.scanned_at }} — Score: {{ scan.overall_score }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <label for="scan_two">Second scan (newer report)</label>
+            <select name="scan_two" id="scan_two" required>
+                {% for scan in scans %}
+                <option value="{{ scan.id }}" {% if loop.index == 2 %}selected{% endif %}>
+                    {{ scan.target }} — {{ scan.scanned_at }} — Score: {{ scan.overall_score }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="action-button">Compare Reports</button>
+        </form>
+        {% else %}
+            <p>You need at least two saved scans before you can compare reports.</p>
+            <a href="{{ url_for('home') }}" class="action-button">Run a New Scan</a>
+        {% endif %}
+    </section>
+
+    {% if first and second and comparison %}
+    <section class="comparison-result">
+        <h2>Comparison Results</h2>
+        <p><strong>Website:</strong> {{ first.target }}</p>
+
+        <div class="compare-grid">
+            <div class="compare-card">
+                <h3>First Scan</h3>
+                <div class="history-score">{{ first.overall_score }}/100</div>
+                <p>{{ first.grade }}</p>
+                <small>{{ first.scanned_at }}</small>
+            </div>
+
+            <div class="compare-card">
+                <h3>Second Scan</h3>
+                <div class="history-score">{{ second.overall_score }}/100</div>
+                <p>{{ second.grade }}</p>
+                <small>{{ second.scanned_at }}</small>
+            </div>
+        </div>
+
+        <h3>Overall Score Change</h3>
+        <p class="{% if comparison.score_change > 0 %}change-positive{% elif comparison.score_change < 0 %}change-negative{% else %}change-neutral{% endif %}">
+            {% if comparison.score_change > 0 %}+{% endif %}
+            {{ comparison.score_change }} points
+            {% if comparison.score_change > 0 %}
+                — Score improved
+            {% elif comparison.score_change < 0 %}
+                — Score decreased
+            {% else %}
+                — No score change
+            {% endif %}
+        </p>
+
+        <h3>Category Comparison</h3>
+        <div class="table-responsive">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>First Scan</th>
+                        <th>Second Scan</th>
+                        <th>Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in comparison.category_changes %}
+                    <tr>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.old if item.old is not none else 'N/A' }}</td>
+                        <td>{{ item.new if item.new is not none else 'N/A' }}</td>
+                        <td class="{% if item.change is not none and item.change > 0 %}change-positive{% elif item.change is not none and item.change < 0 %}change-negative{% else %}change-neutral{% endif %}">
+                            {% if item.change is none %}
+                                N/A
+                            {% elif item.change > 0 %}
+                                +{{ item.change }}
+                            {% else %}
+                                {{ item.change }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="comparison-note">
+            These changes reflect the scanner's scoring results. They are indicators,
+            not proof that a website is completely secure.
+        </p>
+    </section>
+    {% endif %}
+</main>
+
+<footer class="footer">
+    <p>WebRecon Pro | Developed by <strong>Shawkat Ali</strong></p>
+</footer>
+
+</body>
+</html>
